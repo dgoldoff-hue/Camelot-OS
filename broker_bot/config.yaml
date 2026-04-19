@@ -1,0 +1,51 @@
+# broker_bot/config.yaml
+# Camelot Realty Group — Broker Bot Configuration
+
+bot:
+  name: "Broker Bot"
+  version: "1.0.0"
+  environment: "production"   # production | staging | development
+
+camelot:
+  company_name: "Camelot Property Management Services Corp"
+  realty_group: "Camelot Realty Group"
+  broker_of_record: "Eleni Palmeri"
+  broker_email: "epalmeri@camelot.nyc"
+  default_buyer_entity: "Camelot Acquisitions LLC"
+  geographies:
+    - "New York City"
+    - "Westchester County, NY"
+    - "Connecticut"
+    - "New Jersey"
+    - "Florida"
+
+hubspot:
+  pipeline_name: "Camelot Brokerage"
+  stages:
+    - "Prospect"
+    - "LOI Submitted"
+    - "Under Contract"
+    - "Closed"
+    - "Dead"
+
+deal_defaults:
+  earnest_money_pct: 2.0
+  due_diligence_days: 30
+  inspection_days: 15
+  closing_days_after_contract: 60
+  management_fee_pct: 5.0
+  vacancy_pct: 5.0
+  credit_loss_pct: 1.0
+  reserves_per_unit: 250
+
+acris:
+  base_url: "https://data.cityofnewyork.us/resource/usep-8jbt.json"
+  legals_url: "https://data.cityofnewyork.us/resource/8h5j-fqxa.json"
+  default_lookback_years: 3
+  default_radius_miles: 0.5
+  min_sale_price: 500000
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  file: "logs/broker_bot.log"

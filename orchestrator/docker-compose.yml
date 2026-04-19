@@ -1,0 +1,246 @@
+version: "3.9"
+
+# =============================================================================
+# Camelot OS — Docker Compose Stack
+# docker-compose.yml
+#
+# Services:
+#   orchestrator    — FastAPI master router (port 8000)
+#   concierge_bot   — Tenant operations API (port 8001)
+#   index_bot       — Document intelligence API (port 8002)
+#   compliance_bot  — NYC regulatory compliance API (port 8003)
+#
+# Usage:
+#   docker-compose up --build               # Start all services
+#   docker-compose up orchestrator          # Start only the orchestrator
+#   docker-compose logs -f orchestrator     # Tail orchestrator logs
+#   docker-compose down                     # Stop all services
+#   docker-compose down -v                  # Stop and remove volumes
+# =============================================================================
+
+networks:
+  camelot_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "172.20.0.0/24"
+
+volumes:
+  camelot_logs:
+    name: camelot_logs
+  camelot_data:
+    name: camelot_data
+
+# ---------------------------------------------------------------------------
+# Shared environment defaults
+# ---------------------------------------------------------------------------
+x-common-env: &common-env
+  env_file:
+    - .env
+  environment:
+    - TZ=America/New_York
+    - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    - SUPABASE_URL=${SUPABASE_URL}
+    - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+    - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 15s
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # ORCHESTRATOR — Master AI router and API gateway
+  # ---------------------------------------------------------------------------
+  orchestrator:
+    build:
+      context: ..
+      dockerfile: orchestrator/Dockerfile
+      target: orchestrator
+    image: camelot-os/orchestrator:latest
+    container_name: camelot_orchestrator
+    <<: *common-env
+    environment:
+      - ENV=${ENV:-production}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_FILE=/app/logs/orchestrator.log
+      # Internal bot endpoints (Docker network hostnames)
+      - CONCIERGE_BOT_HOST=concierge_bot
+      - INDEX_BOT_HOST=index_bot
+      - COMPLIANCE_BOT_HOST=compliance_bot
+      - CONCIERGE_BOT_PORT=8001
+      - INDEX_BOT_PORT=8002
+      - COMPLIANCE_BOT_PORT=8003
+      # External integrations
+      - HUBSPOT_API_KEY=${HUBSPOT_API_KEY}
+      - HUBSPOT_PORTAL_ID=${HUBSPOT_PORTAL_ID}
+      - GOOGLE_SEARCH_API_KEY=${GOOGLE_SEARCH_API_KEY}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - COSTAR_API_KEY=${COSTAR_API_KEY}
+      - NYC_OPEN_DATA_APP_TOKEN=${NYC_OPEN_DATA_APP_TOKEN}
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - camelot_logs:/app/logs
+      - camelot_data:/app/data
+      # Mount prompts directory for live reload
+      - ./prompts:/app/orchestrator/prompts:ro
+    depends_on:
+      concierge_bot:
+        condition: service_healthy
+      index_bot:
+        condition: service_healthy
+      compliance_bot:
+        condition: service_healthy
+    networks:
+      camelot_net:
+        ipv4_address: "172.20.0.10"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      <<: *healthcheck-defaults
+    labels:
+      - "camelot.service=orchestrator"
+      - "camelot.version=1.0.0"
+      - "traefik.enable=true"
+      - "traefik.http.routers.orchestrator.rule=Host(`api.camelotpms.com`)"
+      - "traefik.http.routers.orchestrator.tls=true"
+      - "traefik.http.routers.orchestrator.tls.certresolver=letsencrypt"
+
+  # ---------------------------------------------------------------------------
+  # CONCIERGE BOT — Tenant operations and maintenance management
+  # ---------------------------------------------------------------------------
+  concierge_bot:
+    build:
+      context: ..
+      dockerfile: concierge_bot/Dockerfile
+    image: camelot-os/concierge-bot:latest
+    container_name: camelot_concierge
+    <<: *common-env
+    environment:
+      - PORT=8001
+      - HOST=0.0.0.0
+      - LOG_FILE=/app/logs/concierge.log
+      - APPFOLIO_API_KEY=${APPFOLIO_API_KEY}
+      - APPFOLIO_CLIENT_ID=${APPFOLIO_CLIENT_ID}
+      - BUILDIUM_API_KEY=${BUILDIUM_API_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER}
+      - TWILIO_EMERGENCY_NUMBER=${TWILIO_EMERGENCY_NUMBER}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-ops@camelotpms.com}
+      - CONCIERGE_EMERGENCY_ESCALATION_EMAIL=${CONCIERGE_EMERGENCY_ESCALATION_EMAIL:-emergency@camelotpms.com}
+    ports:
+      - "${CONCIERGE_BOT_PORT:-8001}:8001"
+    volumes:
+      - camelot_logs:/app/logs
+      - camelot_data:/app/data
+    networks:
+      camelot_net:
+        ipv4_address: "172.20.0.11"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      <<: *healthcheck-defaults
+    labels:
+      - "camelot.service=concierge_bot"
+
+  # ---------------------------------------------------------------------------
+  # INDEX BOT — Document intelligence and Google Drive organization
+  # ---------------------------------------------------------------------------
+  index_bot:
+    build:
+      context: ..
+      dockerfile: index_bot/Dockerfile
+    image: camelot-os/index-bot:latest
+    container_name: camelot_index
+    <<: *common-env
+    environment:
+      - PORT=8002
+      - HOST=0.0.0.0
+      - LOG_FILE=/app/logs/index.log
+      - GOOGLE_SERVICE_ACCOUNT_JSON=${GOOGLE_SERVICE_ACCOUNT_JSON}
+      - GOOGLE_DRIVE_ROOT_FOLDER_ID=${GOOGLE_DRIVE_ROOT_FOLDER_ID}
+      - INDEX_BOT_BATCH_SIZE=${INDEX_BOT_BATCH_SIZE:-20}
+      - INDEX_EXPIRY_ALERT_DAYS=${INDEX_EXPIRY_ALERT_DAYS:-30}
+      - INDEX_EXPIRY_ALERT_EMAIL=${INDEX_EXPIRY_ALERT_EMAIL:-legal@camelotpms.com}
+    ports:
+      - "${INDEX_BOT_PORT:-8002}:8002"
+    volumes:
+      - camelot_logs:/app/logs
+      - camelot_data:/app/data
+      - /tmp/camelot_index_cache:/app/cache    # Local document processing cache
+    networks:
+      camelot_net:
+        ipv4_address: "172.20.0.12"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      <<: *healthcheck-defaults
+    labels:
+      - "camelot.service=index_bot"
+
+  # ---------------------------------------------------------------------------
+  # COMPLIANCE BOT — NYC regulatory compliance and violation management
+  # ---------------------------------------------------------------------------
+  compliance_bot:
+    build:
+      context: ..
+      dockerfile: compliance_bot/Dockerfile
+    image: camelot-os/compliance-bot:latest
+    container_name: camelot_compliance
+    <<: *common-env
+    environment:
+      - PORT=8003
+      - HOST=0.0.0.0
+      - LOG_FILE=/app/logs/compliance.log
+      - NYC_OPEN_DATA_APP_TOKEN=${NYC_OPEN_DATA_APP_TOKEN}
+      - LL97_FINE_PER_TON_CO2E=${LL97_FINE_PER_TON_CO2E:-268.00}
+      - COMPLIANCE_ALERT_EMAIL=${COMPLIANCE_ALERT_EMAIL:-compliance@camelotpms.com}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    ports:
+      - "${COMPLIANCE_BOT_PORT:-8003}:8003"
+    volumes:
+      - camelot_logs:/app/logs
+      - camelot_data:/app/data
+      - /tmp/camelot_compliance_cache:/app/cache
+    networks:
+      camelot_net:
+        ipv4_address: "172.20.0.13"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      <<: *healthcheck-defaults
+    labels:
+      - "camelot.service=compliance_bot"
+
+  # ---------------------------------------------------------------------------
+  # OPTIONAL: Traefik reverse proxy (for production TLS termination)
+  # Uncomment to enable. Requires ACME email and domain configuration.
+  # ---------------------------------------------------------------------------
+  # traefik:
+  #   image: traefik:v3.0
+  #   container_name: camelot_traefik
+  #   command:
+  #     - "--api.insecure=false"
+  #     - "--providers.docker=true"
+  #     - "--providers.docker.exposedbydefault=false"
+  #     - "--entrypoints.web.address=:80"
+  #     - "--entrypoints.websecure.address=:443"
+  #     - "--certificatesresolvers.letsencrypt.acme.email=ops@camelotpms.com"
+  #     - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+  #     - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock:ro"
+  #     - "traefik_certs:/letsencrypt"
+  #   networks:
+  #     - camelot_net
+  #   restart: unless-stopped

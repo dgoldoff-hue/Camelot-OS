@@ -1,0 +1,62 @@
+# index_bot/config.yaml
+# Camelot Property Management Services Corp — Index Bot Configuration
+
+bot:
+  name: "Index Bot"
+  version: "1.0.0"
+  environment: "production"
+  indexing_lead: "Sam Lodge"
+  pilot_building: "552"
+
+google_drive:
+  root_folder_name: "Camelot"
+  incoming_folder: "Incoming"
+  unresolved_folder: "UNRESOLVED"
+  index_folder: "_Index"
+  folder_structure:
+    - "LEASE"
+    - "INVOICE"
+    - "PERMIT"
+    - "VIOLATION"
+    - "REPORT"
+    - "FINANCIAL"
+    - "CORRESPONDENCE"
+    - "INSURANCE"
+    - "CONTRACT"
+    - "CO"
+
+naming:
+  format: "{MDS_CODE}_{DOC_TYPE}_{YYYY-MM-DD}_{VERSION}.{ext}"
+  example: "552_LEASE_2026-04-01_v1.pdf"
+
+mds:
+  pilot_codes:
+    - "552"
+  # Full registry is in mds_mapper.py BUILDING_CODES dict
+
+make:
+  webhook_path: "/make/incoming"
+  trigger_folder: "Incoming"
+
+api:
+  host: "0.0.0.0"
+  port: 8002
+
+sheets:
+  worksheets:
+    index_log: "Index Log"
+    unresolved: "Unresolved Files"
+  index_log_headers:
+    - "Timestamp"
+    - "File ID"
+    - "Original Name"
+    - "New Name"
+    - "MDS Code"
+    - "Doc Type"
+    - "Destination"
+    - "Triggered By"
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  file: "logs/index_bot.log"

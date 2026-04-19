@@ -1,0 +1,107 @@
+# config.yaml — Camelot OS Report Bot
+# =====================================
+# Non-secret configuration. Secrets belong in .env (never commit .env).
+
+report_bot:
+  name: "Camelot Report Bot"
+  version: "1.0.0"
+  port: 8003
+  host: "0.0.0.0"
+
+# Output directory for generated reports
+output:
+  base_dir: "output/reports"
+  owner_statements_subdir: "owner_statements"
+  kpi_dashboards_subdir: "kpi_dashboards"
+  investor_updates_subdir: "investor_updates"
+
+# Scheduler times (24-hour format, server timezone)
+scheduler:
+  monthly_statements_time: "06:00"  # 1st of month
+  weekly_kpi_time: "08:00"          # Every Monday
+  quarterly_update_time: "07:00"    # 1st of Jan/Apr/Jul/Oct
+  pid_file: "/tmp/camelot_report_scheduler.pid"
+
+# Email delivery
+email:
+  send_on_completion: true
+  alert_recipient: "dgoldoff@camelot.nyc"
+  cc_recipient: "charkien@camelot.nyc"
+  from_address: "reports@camelot.nyc"
+  from_name: "Camelot OS Report Bot"
+
+# Branding
+branding:
+  company_name: "Camelot Property Management Services Corp"
+  brand_color_gold: "#C9A84C"
+  brand_color_navy: "#1A2645"
+  logo_path: "assets/camelot_logo.png"
+
+# Report defaults
+reports:
+  owner_statement:
+    # Suppress line items below this dollar amount
+    min_line_item_amount: 1.00
+    # Include prior-month comparison column
+    include_prior_period: true
+
+  kpi_dashboard:
+    # Number of prior weeks to compare against
+    comparison_weeks: 1
+    # Metrics to include (all enabled by default)
+    metrics:
+      occupancy_rate: true
+      rent_collection_rate: true
+      open_hpd_violations: true
+      open_dob_violations: true
+      total_open_violations: true
+      open_work_orders: true
+      work_orders_closed_7d: true
+      new_scout_leads: true
+      hubspot_pipeline_value: true
+
+  investor_update:
+    # Sections to include in the quarterly PDF
+    sections:
+      portfolio_overview: true
+      financial_performance: true
+      market_commentary: true
+      occupancy_trends: true
+      capital_improvements: true
+      outlook: true
+    # Disclaimer to append to each report
+    disclaimer: >
+      This report is prepared by Camelot Property Management Services Corp for
+      informational purposes only. Financial data reflects management estimates
+      and may be subject to audit adjustment. Forward-looking statements involve
+      risks and uncertainties. Confidential — Do Not Distribute.
+
+# Portfolio building BBLs (used by violation collector)
+# Format: "BOROUGH-BLOCK-LOT" (NYC standard BBL)
+# Override via PORTFOLIO_BBLS env var (comma-separated)
+portfolio:
+  bbls: []  # Populated via PORTFOLIO_BBLS env var or managed in Supabase
+
+# HubSpot pipeline names to include in pipeline value KPI
+hubspot:
+  pipeline_names:
+    - "Camelot Roll-Up"
+    - "Camelot Brokerage"
+
+# Supabase table names (override if your schema differs)
+supabase:
+  tables:
+    units: "units"
+    rent_payments: "rent_payments"
+    work_orders: "work_orders"
+    kpi_snapshots: "kpi_snapshots"
+    quarterly_financials: "quarterly_financials"
+    capex_projects: "capex_projects"
+    properties: "properties"
+    owners: "owners"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/report_bot.log"
+  rotate_days: 30

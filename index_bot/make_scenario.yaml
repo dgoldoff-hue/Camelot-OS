@@ -1,0 +1,124 @@
+# make_scenario.yaml
+# Make.com (Integromat) Scenario Blueprint
+# Camelot Property Management Services Corp / Index Bot
+#
+# Trigger: New file added to /Camelot/Incoming/ folder in Google Drive
+# Purpose: Auto-classify, rename, and organize files using MDS convention
+#
+# To use: Import this blueprint into Make.com via Scenarios → Import Blueprint
+# Note: Update all [PLACEHOLDER] values with your actual IDs before activating.
+
+name: "Camelot Index Bot — Auto-File Organizer"
+description: "Watches the Camelot Incoming folder and routes new files through Index Bot for MDS classification, renaming, and organization."
+version: 1
+active: true
+
+trigger:
+  module: "google-drive:watchFiles"
+  label: "Watch /Camelot/Incoming/ for New Files"
+  parameters:
+    folderId: "[GOOGLE_DRIVE_INCOMING_FOLDER_ID]"   # Replace with actual Incoming/ folder ID
+    watchType: "newFiles"
+    maxResults: 10
+    fields: "id,name,mimeType,size,modifiedTime,webViewLink,createdTime"
+    includeSubfolders: false
+
+steps:
+
+  - id: 1
+    module: "http:makeRequest"
+    label: "POST to Index Bot /classify — Get MDS filename"
+    parameters:
+      url: "[INDEX_BOT_API_URL]/classify"           # e.g. https://your-server.com/classify
+      method: POST
+      headers:
+        - name: "Content-Type"
+          value: "application/json"
+        - name: "X-Webhook-Secret"
+          value: "[MAKE_WEBHOOK_SECRET]"
+      body:
+        type: "json"
+        content:
+          file_id: "{{trigger.id}}"
+          file_name: "{{trigger.name}}"
+          folder_id: "{{trigger.parents[0]}}"
+          mime_type: "{{trigger.mimeType}}"
+          size: "{{trigger.size}}"
+          created_by: "[DEFAULT_CREATED_BY]"        # e.g. sam.lodge@camelot.nyc
+          dry_run: false
+      timeout: 30
+      parseResponse: true
+
+  - id: 2
+    module: "google-drive:updateFile"
+    label: "Rename File in Drive"
+    condition: "{{steps.1.body.status}} == 'success' AND {{steps.1.body.new_filename}} != null"
+    parameters:
+      fileId: "{{trigger.id}}"
+      fileName: "{{steps.1.body.new_filename}}"
+
+  - id: 3
+    module: "google-drive:moveFile"
+    label: "Move File to Correct MDS Folder"
+    condition: "{{steps.1.body.destination_folder}} != null AND {{steps.1.body.destination_folder}} != '/Camelot/Incoming/UNRESOLVED/'"
+    parameters:
+      fileId: "{{trigger.id}}"
+      folderId: "[GOOGLE_DRIVE_ROOT_FOLDER_ID]"     # Resolve dynamically via Index Bot API
+      # Note: The actual destination folder ID is determined by the Index Bot
+      # which calls move_to_correct_folder() directly via the /rename endpoint.
+      # This step is a fallback if you prefer Make to handle the move.
+      newParentFolderId: "{{steps.1.body.destination_folder_id}}"
+
+  - id: 4
+    module: "google-sheets:addRow"
+    label: "Log to Google Sheets Master Index"
+    parameters:
+      spreadsheetId: "[SHEETS_INDEX_SPREADSHEET_ID]"
+      worksheetId: "Index Log"
+      row:
+        - "{{now}}"                                   # Timestamp
+        - "{{trigger.id}}"                            # File ID
+        - "{{trigger.name}}"                          # Original filename
+        - "{{steps.1.body.new_filename}}"             # New MDS filename
+        - "{{steps.1.body.mds_code}}"                 # MDS code
+        - "{{steps.1.body.doc_type}}"                 # Document type
+        - "{{steps.1.body.destination_folder}}"       # Destination path
+        - "[DEFAULT_CREATED_BY]"                      # Triggered by
+
+  - id: 5
+    module: "google-sheets:addRow"
+    label: "Log UNRESOLVED files to Unresolved Sheet"
+    condition: "{{steps.1.body.destination_folder}} == '/Camelot/Incoming/UNRESOLVED/'"
+    parameters:
+      spreadsheetId: "[SHEETS_INDEX_SPREADSHEET_ID]"
+      worksheetId: "Unresolved Files"
+      row:
+        - "{{now}}"
+        - "{{trigger.id}}"
+        - "{{trigger.name}}"
+        - "{{steps.1.body.errors[0]}}"                # Reason for UNRESOLVED
+        - "{{trigger.webViewLink}}"
+
+error_handling:
+  strategy: "break"                                   # Stop scenario on error (don't retry silently)
+  notify_email: "sam.lodge@camelot.nyc"
+
+scheduling:
+  type: "trigger"                                     # Event-driven (no schedule needed)
+  maxInstances: 5                                     # Allow up to 5 concurrent runs
+
+notes: |
+  SETUP CHECKLIST:
+  1. Replace all [PLACEHOLDER] values with actual IDs from your environment.
+  2. Create the Camelot Drive folder structure:
+       /Camelot/Incoming/
+       /Camelot/Incoming/UNRESOLVED/
+       /Camelot/552/LEASE/, /Camelot/552/INVOICE/, etc.
+  3. Share the root /Camelot/ folder with your service account email (Editor).
+  4. Deploy the Index Bot API server (api_server.py) and set INDEX_BOT_API_URL.
+  5. Set MAKE_WEBHOOK_SECRET in both Make.com and your .env file.
+  6. Create the Google Sheets workbook with sheets: "Index Log", "Unresolved Files"
+     Add headers:
+       Index Log: Timestamp | File ID | Original Name | New Name | MDS Code | Doc Type | Destination | Triggered By
+       Unresolved Files: Timestamp | File ID | Original Name | Error Reason | Drive Link
+  7. Activate the scenario. Test by uploading a file to /Camelot/Incoming/.

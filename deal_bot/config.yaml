@@ -1,0 +1,106 @@
+# config.yaml — Camelot OS Deal Bot
+# ====================================
+# Non-secret configuration. Secrets belong in .env.
+
+deal_bot:
+  name: "Camelot Deal Bot"
+  version: "1.0.0"
+  port: 8004
+  host: "0.0.0.0"
+
+# Output directories
+output:
+  base_dir: "output/deal_bot"
+  profiles_subdir: "profiles"
+  battlecards_subdir: "battlecards"
+  sequences_subdir: "sequences"
+  outreach_subdir: "outreach"
+
+# HubSpot pipeline
+hubspot:
+  pipeline_name: "Camelot Roll-Up"
+  stages:
+    - "Identified"
+    - "Contacted"
+    - "Responded"
+    - "Meeting Scheduled"
+    - "Term Sheet"
+    - "Closed"
+  # Rough per-unit estimate for deal amount calculation ($50k/unit)
+  per_unit_deal_estimate: 50000
+
+# Outreach configuration
+outreach:
+  sender_name: "David Goldoff"
+  sender_title: "Managing Partner, Camelot Property Management"
+  sender_email: "dgoldoff@camelot.nyc"
+  sender_phone: "(212) 555-0100"
+  camelot_website: "https://camelot.nyc"
+
+# Email sequence schedule (day offsets from sequence start)
+sequence:
+  steps: [1, 3, 7, 14, 30]
+  # Time to send daily (used by scheduler)
+  send_time: "09:00"
+
+# Prospect scoring weights (must sum to 1.0)
+scoring:
+  unit_count: 0.30
+  geography: 0.20
+  pain_indicators: 0.25
+  relationship_warmth: 0.15
+  ownership_tenure: 0.10
+
+# Target geographies
+target_geographies:
+  - "new york"
+  - "brooklyn"
+  - "queens"
+  - "bronx"
+  - "manhattan"
+  - "staten island"
+  - "westchester"
+  - "connecticut"
+  - "new jersey"
+  - "florida"
+
+# Deal structures offered
+deal_structures:
+  - id: "equity-sale"
+    label: "Equity Sale"
+    description: "Minority (30-49%) or majority (50-100%) acquisition"
+    min_units: 100
+
+  - id: "roll-up"
+    label: "Roll-Up"
+    description: "Join Camelot brand umbrella; operator retains management role"
+    min_units: 30
+
+  - id: "powered-by"
+    label: "Powered by Camelot OS"
+    description: "Technology partnership; operator retains brand and ownership"
+    min_units: 20
+
+# Outreach angles
+angles:
+  - id: "succession"
+    trigger: "owner tenure >= 15 years"
+  - id: "growth"
+    trigger: "portfolio >= 100 units, tenure < 10 years"
+  - id: "systems-upgrade"
+    trigger: "open violations > 10 OR no website"
+  - id: "tired-operator"
+    trigger: "default fallback"
+
+# Supabase tables
+supabase:
+  tables:
+    email_sequences: "email_sequences"
+    prospects: "prospects"
+    outreach_log: "outreach_log"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/deal_bot.log"
+  rotate_days: 30

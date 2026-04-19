@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camelot OS — Operations Dashboard</title>
+  <style>
+    /* =====================================================================
+       CAMELOT OS DASHBOARD — SINGLE FILE
+       Dark navy #1A2645 background, gold #C9A84C accents
+       Vanilla HTML/CSS/JS — no framework dependencies
+    ===================================================================== */
+
+    :root {
+      --navy:       #1A2645;
+      --navy-light: #243055;
+      --navy-mid:   #1E2D50;
+      --navy-dark:  #111B33;
+      --gold:       #C9A84C;
+      --gold-light: #E2C572;
+      --gold-dim:   #8B7035;
+      --white:      #F4F6FA;
+      --grey:       #8A96B0;
+      --grey-dim:   #4A5568;
+      --green:      #3DD68C;
+      --red:        #E05252;
+      --amber:      #F5A623;
+      --blue:       #4A90D9;
+      --font:       system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --mono:       'SF Mono', 'Fira Code', 'Consolas', monospace;
+      --radius:     8px;
+      --sidebar-w:  240px;
+      --topbar-h:   56px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--navy-dark);
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────────────────── */
+    #topbar {
+      height: var(--topbar-h);
+      background: var(--navy);
+      border-bottom: 1px solid rgba(201, 168, 76, 0.25);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    #topbar .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #topbar .logo svg { width: 28px; height: 28px; }
+
+    #topbar .logo-text {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    #topbar .logo-sub {
+      font-size: 10px;
+      color: var(--grey);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: -2px;
+    }
+
+    #topbar .spacer { flex: 1; }
+
+    #topbar .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--grey);
+      background: var(--navy-mid);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    #topbar .status-pill .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    #topbar .time-display {
+      font-size: 12px;
+      color: var(--grey);
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────── */
+    #layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--navy);
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 16px 0 8px;
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      padding: 0 16px 8px;
+    }
+
+    .bot-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+    .bot-item:hover { background: rgba(201, 168, 76, 0.07); }
+    .bot-item.active { background: rgba(201, 168, 76, 0.12); }
+    .bot-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--gold);
+      border-radius: 0 2px 2px 0;
+    }
+
+    .bot-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--grey-dim);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .bot-dot.online { background: var(--green); }
+    .bot-dot.local  { background: var(--gold); }
+    .bot-dot.offline { background: var(--red); }
+
+    .bot-icon { font-size: 15px; flex-shrink: 0; }
+
+    .bot-info { flex: 1; min-width: 0; }
+    .bot-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white);
+      white-space: nowrap;
+    }
+    .bot-domain {
+      font-size: 10px;
+      color: var(--grey);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bot-status-label {
+      font-size: 9px;
+      color: var(--grey);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Main content ───────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Quick actions bar ──────────────────────────────────────────── */
+    #quickbar {
+      background: var(--navy-mid);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 10px 20px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .quick-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--navy);
+      border: 1px solid rgba(201, 168, 76, 0.3);
+      color: var(--gold-light);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font);
+      letter-spacing: 0.02em;
+    }
+    .quick-btn:hover {
+      background: rgba(201, 168, 76, 0.12);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .quick-btn:active { transform: scale(0.97); }
+    .quick-btn.loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* ── Content panels ─────────────────────────────────────────────── */
+    #content-area {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    /* ── Chat panel ─────────────────────────────────────────────────── */
+    #chat-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      overflow: hidden;
+    }
+
+    #chat-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    #chat-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white);
+      letter-spacing: 0.03em;
+    }
+    #chat-header .session-label {
+      font-size: 11px;
+      color: var(--grey);
+      margin-left: auto;
+      font-family: var(--mono);
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    /* Custom scrollbar */
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--grey-dim); border-radius: 2px; }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 88%;
+      animation: fadeUp 0.2s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; align-items: flex-start; }
+    .msg.system-msg { align-self: center; align-items: center; }
+
+    .msg-label {
+      font-size: 10px;
+      color: var(--grey);
+      margin-bottom: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .msg.user .msg-bubble {
+      background: rgba(201, 168, 76, 0.15);
+      border: 1px solid rgba(201, 168, 76, 0.3);
+      color: var(--gold-light);
+    }
+    .msg.assistant .msg-bubble {
+      background: var(--navy-light);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--white);
+    }
+    .msg.system-msg .msg-bubble {
+      background: transparent;
+      border: none;
+      color: var(--grey);
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    .routing-card {
+      background: var(--navy-dark);
+      border: 1px solid rgba(201, 168, 76, 0.25);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--grey);
+      margin-bottom: 4px;
+    }
+    .routing-card .bot-tag {
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .routing-card .action-tag {
+      color: var(--blue);
+    }
+    .routing-card .conf-tag {
+      color: var(--green);
+    }
+
+    .msg-time {
+      font-size: 10px;
+      color: var(--grey-dim);
+      margin-top: 3px;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px;
+      background: var(--navy-light);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+    }
+    .typing-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--grey);
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* ── Chat input ─────────────────────────────────────────────────── */
+    #chat-input-area {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      background: var(--navy);
+    }
+
+    #chat-input {
+      flex: 1;
+      background: var(--navy-mid);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      resize: none;
+      outline: none;
+      min-height: 40px;
+      max-height: 120px;
+      overflow-y: auto;
+      transition: border-color 0.15s;
+      line-height: 1.4;
+    }
+    #chat-input:focus { border-color: rgba(201, 168, 76, 0.5); }
+    #chat-input::placeholder { color: var(--grey); }
+
+    #send-btn {
+      background: var(--gold);
+      border: none;
+      color: var(--navy-dark);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font);
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    #send-btn:hover { background: var(--gold-light); }
+    #send-btn:active { transform: scale(0.97); }
+    #send-btn:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* ── Activity log panel ─────────────────────────────────────────── */
+    #activity-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #activity-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    #activity-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white);
+      letter-spacing: 0.03em;
+    }
+
+    #activity-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    #activity-log::-webkit-scrollbar { width: 3px; }
+    #activity-log::-webkit-scrollbar-thumb { background: var(--grey-dim); border-radius: 2px; }
+
+    .activity-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      animation: fadeUp 0.2s ease;
+    }
+    .activity-item:last-child { border-bottom: none; }
+
+    .activity-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .activity-bot-tag {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.07);
+      color: var(--gold-light);
+    }
+
+    .activity-time {
+      font-size: 10px;
+      color: var(--grey-dim);
+      margin-left: auto;
+    }
+
+    .activity-action {
+      font-size: 11px;
+      color: var(--white);
+      font-weight: 500;
+    }
+
+    .activity-detail {
+      font-size: 11px;
+      color: var(--grey);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .activity-status {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .activity-status.success { background: var(--green); }
+    .activity-status.error   { background: var(--red); }
+    .activity-status.pending { background: var(--amber); }
+
+    /* ── Empty state ────────────────────────────────────────────────── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--grey);
+      padding: 40px;
+      text-align: center;
+    }
+    .empty-state .icon { font-size: 32px; opacity: 0.4; }
+    .empty-state p { font-size: 13px; line-height: 1.6; max-width: 260px; }
+
+    /* ── Toast notifications ────────────────────────────────────────── */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+    }
+    .toast {
+      background: var(--navy-light);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-left: 3px solid var(--gold);
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--white);
+      animation: slideIn 0.2s ease;
+      max-width: 320px;
+    }
+    .toast.error { border-left-color: var(--red); }
+    .toast.success { border-left-color: var(--green); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Topbar ─────────────────────────────────────────────────────── -->
+<div id="topbar">
+  <div class="logo">
+    <!-- Camelot SVG logo — stylized C crown mark -->
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Camelot OS">
+      <rect width="28" height="28" rx="6" fill="#C9A84C" fill-opacity="0.15"/>
+      <path d="M7 8 L7 20 L21 20" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 8 L10 11 L13 8 L16 11 L19 8" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="21" cy="20" r="2" fill="#C9A84C"/>
+    </svg>
+    <div>
+      <div class="logo-text">Camelot OS</div>
+      <div class="logo-sub">Operations Command</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="status-pill">
+    <span class="dot" id="system-dot"></span>
+    <span id="system-status-text">All Systems Online</span>
+  </div>
+  <div class="time-display" id="clock"></div>
+</div>
+
+<!-- ── Layout ─────────────────────────────────────────────────────── -->
+<div id="layout">
+
+  <!-- ── Sidebar ───────────────────────────────────────────────────── -->
+  <div id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Specialist Bots</div>
+
+      <div class="bot-item active" data-bot="scout" onclick="selectBot('scout')">
+        <span class="bot-dot local" id="dot-scout"></span>
+        <span class="bot-icon">🔭</span>
+        <div class="bot-info">
+          <div class="bot-name">Scout</div>
+          <div class="bot-domain">Lead Generation</div>
+        </div>
+        <span class="bot-status-label" id="status-scout">local</span>
+      </div>
+
+      <div class="bot-item" data-bot="broker" onclick="selectBot('broker')">
+        <span class="bot-dot local" id="dot-broker"></span>
+        <span class="bot-icon">⚖️</span>
+        <div class="bot-info">
+          <div class="bot-name">Broker</div>
+          <div class="bot-domain">Transactions & Docs</div>
+        </div>
+        <span class="bot-status-label" id="status-broker">local</span>
+      </div>
+
+      <div class="bot-item" data-bot="compliance" onclick="selectBot('compliance')">
+        <span class="bot-dot" id="dot-compliance"></span>
+        <span class="bot-icon">🏛️</span>
+        <div class="bot-info">
+          <div class="bot-name">Compliance</div>
+          <div class="bot-domain">HPD · DOB · LL97</div>
+        </div>
+        <span class="bot-status-label" id="status-compliance">—</span>
+      </div>
+
+      <div class="bot-item" data-bot="concierge" onclick="selectBot('concierge')">
+        <span class="bot-dot" id="dot-concierge"></span>
+        <span class="bot-icon">🏠</span>
+        <div class="bot-info">
+          <div class="bot-name">Concierge</div>
+          <div class="bot-domain">Tenant Operations</div>
+        </div>
+        <span class="bot-status-label" id="status-concierge">—</span>
+      </div>
+
+      <div class="bot-item" data-bot="index" onclick="selectBot('index')">
+        <span class="bot-dot" id="dot-index"></span>
+        <span class="bot-icon">📁</span>
+        <div class="bot-info">
+          <div class="bot-name">Index</div>
+          <div class="bot-domain">Document Intel</div>
+        </div>
+        <span class="bot-status-label" id="status-index">—</span>
+      </div>
+
+      <div class="bot-item" data-bot="report" onclick="selectBot('report')">
+        <span class="bot-dot local" id="dot-report"></span>
+        <span class="bot-icon">📊</span>
+        <div class="bot-info">
+          <div class="bot-name">Report</div>
+          <div class="bot-domain">KPI Analytics</div>
+        </div>
+        <span class="bot-status-label" id="status-report">local</span>
+      </div>
+
+      <div class="bot-item" data-bot="deal" onclick="selectBot('deal')">
+        <span class="bot-dot local" id="dot-deal"></span>
+        <span class="bot-icon">🤝</span>
+        <div class="bot-info">
+          <div class="bot-name">Deal</div>
+          <div class="bot-domain">Acquisition Outreach</div>
+        </div>
+        <span class="bot-status-label" id="status-deal">local</span>
+      </div>
+    </div>
+
+    <!-- Sidebar footer -->
+    <div style="margin-top:auto; padding:16px; border-top:1px solid rgba(255,255,255,0.07);">
+      <div style="font-size:10px; color:var(--grey-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.08em;">Session</div>
+      <div id="session-display" style="font-size:10px; color:var(--grey); font-family:var(--mono); word-break:break-all;"></div>
+      <button onclick="clearSession()" style="margin-top:8px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:var(--grey); font-size:10px; padding:4px 10px; border-radius:4px; cursor:pointer; font-family:var(--font); transition:all 0.15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--grey)'">Clear Session</button>
+    </div>
+  </div>
+
+  <!-- ── Main ──────────────────────────────────────────────────────── -->
+  <div id="main">
+
+    <!-- Quick actions -->
+    <div id="quickbar">
+      <button class="quick-btn" onclick="quickAction('Run Daily Scout', 'Find new property management company acquisition targets in NYC and Westchester today')">
+        🔭 Run Daily Scout
+      </button>
+      <button class="quick-btn" onclick="quickAction('Check Compliance', 'Pull a summary of all open HPD violations and LL97 risks across our portfolio')">
+        🏛️ Check Compliance
+      </button>
+      <button class="quick-btn" onclick="quickAction('Send KPI Report', 'Send weekly KPI report to the team')">
+        📊 Send KPI Report
+      </button>
+      <button class="quick-btn" onclick="quickAction('Find Acquisition Targets', 'Find property management companies in Connecticut and New Jersey that fit our acquisition profile')">
+        🤝 Find Acquisition Targets
+      </button>
+      <button class="quick-btn" onclick="quickAction('Organize Drive', 'Organize new files in Google Drive and run the indexer')">
+        📁 Organize Drive
+      </button>
+    </div>
+
+    <!-- Content grid -->
+    <div id="content-area">
+
+      <!-- Chat panel -->
+      <div id="chat-panel">
+        <div id="chat-header">
+          <h2>Command Console</h2>
+          <span class="session-label" id="chat-session-label"></span>
+        </div>
+
+        <div id="messages">
+          <!-- Welcome message -->
+          <div class="msg assistant" style="max-width:100%">
+            <div class="msg-label">Camelot OS</div>
+            <div class="msg-bubble">
+              <strong style="color:var(--gold)">Welcome to Camelot OS.</strong> I'm your AI operations command layer. Route any request to the right specialist bot — Scout for leads, Compliance for violations, Broker for deal docs, Concierge for tenant operations, Index for documents, Report for analytics, or Deal for acquisition outreach.<br><br>
+              Type a command below or use the quick action buttons above.
+            </div>
+          </div>
+        </div>
+
+        <div id="chat-input-area">
+          <textarea
+            id="chat-input"
+            placeholder="Type a command... e.g. 'Check violations for 123 Main St Brooklyn' or 'Find PM companies in Westchester'"
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+          <button id="send-btn" onclick="sendMessage()">Send ↵</button>
+        </div>
+      </div>
+
+      <!-- Activity log panel -->
+      <div id="activity-panel">
+        <div id="activity-header">
+          <h2>Activity Log</h2>
+        </div>
+        <div id="activity-log">
+          <div class="empty-state">
+            <div class="icon">📋</div>
+            <p>Bot activity will appear here as commands are executed.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+  // ===========================================================================
+  // CAMELOT OS DASHBOARD — VANILLA JS
+  // ===========================================================================
+
+  // ---------------------------------------------------------------------------
+  // Config
+  // ---------------------------------------------------------------------------
+  const API_BASE = 'http://localhost:8000';   // Change to your deployed URL
+  const WS_BASE  = API_BASE.replace('http', 'ws');
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+  let sessionId    = generateSessionId();
+  let ws           = null;
+  let isLoading    = false;
+  let activityLog  = [];
+  let selectedBot  = 'scout';
+
+  // ---------------------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------------------
+  document.addEventListener('DOMContentLoaded', () => {
+    initSession();
+    startClock();
+    connectWebSocket();
+    refreshBotStatus();
+    setInterval(refreshBotStatus, 30000);
+  });
+
+  function initSession() {
+    const stored = sessionStorage.getItem('camelot_session_id');
+    if (stored) sessionId = stored;
+    else sessionStorage.setItem('camelot_session_id', sessionId);
+
+    document.getElementById('session-display').textContent = sessionId;
+    document.getElementById('chat-session-label').textContent = 'Session: ' + sessionId;
+  }
+
+  function generateSessionId() {
+    return 'dashboard-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Clock
+  // ---------------------------------------------------------------------------
+  function startClock() {
+    function tick() {
+      const now = new Date();
+      const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit',
+                     timeZone: 'America/New_York', hour12: false };
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-US', opts) + ' ET';
+    }
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  // ---------------------------------------------------------------------------
+  // WebSocket connection
+  // ---------------------------------------------------------------------------
+  function connectWebSocket() {
+    try {
+      ws = new WebSocket(`${WS_BASE}/ws/${sessionId}`);
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        updateSystemStatus('online');
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        handleWSEvent(msg);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected — retrying in 5s');
+        updateSystemStatus('offline');
+        setTimeout(connectWebSocket, 5000);
+      };
+
+      ws.onerror = (err) => {
+        console.warn('WebSocket error — falling back to REST API');
+        ws = null;
+      };
+    } catch (e) {
+      console.warn('WebSocket not available — using REST API');
+      ws = null;
+    }
+  }
+
+  function handleWSEvent(event) {
+    switch (event.type) {
+      case 'routing':
+        showRoutingCard(event.data);
+        break;
+      case 'progress':
+        updateTypingIndicator(event.data.message);
+        break;
+      case 'response':
+        removeTypingIndicator();
+        appendAssistantMessage(event.data.content, event.data.bot, event.data.duration_ms);
+        addActivity(event.data.bot, event.data.action || 'response', event.data.content, 'success');
+        setLoading(false);
+        break;
+      case 'error':
+        removeTypingIndicator();
+        appendErrorMessage(event.data.message);
+        setLoading(false);
+        break;
+      case 'done':
+        removeTypingIndicator();
+        setLoading(false);
+        break;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sending messages
+  // ---------------------------------------------------------------------------
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  async function sendMessage(text) {
+    const input = document.getElementById('chat-input');
+    const userText = (text || input.value || '').trim();
+    if (!userText || isLoading) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    setLoading(true);
+
+    appendUserMessage(userText);
+    showTypingIndicator();
+
+    // Try WebSocket first
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ user_input: userText, execute: true }));
+      return;
+    }
+
+    // Fallback: REST API
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          user_input: userText,
+          execute: true,
+        }),
+      });
+      const data = await res.json();
+      removeTypingIndicator();
+
+      if (data.error) {
+        appendErrorMessage(data.error);
+      } else {
+        // Show routing info
+        showRoutingCard({
+          bot: data.bot_name,
+          action: data.action,
+          params: data.params,
+          confidence: data.confidence,
+          pipeline: data.pipeline,
+        });
+
+        const content = data.response?.message || JSON.stringify(data.response, null, 2) || '(no response)';
+        appendAssistantMessage(content, data.bot_name, data.duration_ms);
+        addActivity(data.bot_name, data.action, userText, 'success');
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      appendErrorMessage('Could not reach the Camelot OS API. Is the server running at ' + API_BASE + '?');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function quickAction(label, prompt) {
+    const btn = event.currentTarget;
+    btn.classList.add('loading');
+    setTimeout(() => btn.classList.remove('loading'), 3000);
+    sendMessage(prompt);
+    toast(`Running: ${label}`, 'info');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Message rendering
+  // ---------------------------------------------------------------------------
+  function appendUserMessage(text) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    div.innerHTML = `
+      <div class="msg-label">You</div>
+      <div class="msg-bubble">${escHtml(text)}</div>
+      <div class="msg-time">${formatTime(new Date())}</div>
+    `;
+    msgs.appendChild(div);
+    scrollToBottom();
+  }
+
+  function appendAssistantMessage(content, botName, durationMs) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    const botLabel = botName ? `${botName.toUpperCase()} BOT` : 'CAMELOT OS';
+    const durStr = durationMs ? ` · ${Math.round(durationMs)}ms` : '';
+    div.innerHTML = `
+      <div class="msg-label">${escHtml(botLabel)}</div>
+      <div class="msg-bubble">${formatContent(content)}</div>
+      <div class="msg-time">${formatTime(new Date())}${escHtml(durStr)}</div>
+    `;
+    msgs.appendChild(div);
+    scrollToBottom();
+  }
+
+  function appendErrorMessage(text) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.innerHTML = `
+      <div class="msg-label" style="color:var(--red)">ERROR</div>
+      <div class="msg-bubble" style="border-color:rgba(224,82,82,0.3); color:var(--red);">${escHtml(text)}</div>
+    `;
+    msgs.appendChild(div);
+    scrollToBottom();
+  }
+
+  function showRoutingCard(data) {
+    const msgs = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    const params = data.params && Object.keys(data.params).length > 0
+      ? Object.entries(data.params).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(' ')
+      : 'none';
+    const pipeline = data.pipeline ? `<br>Pipeline → <span style="color:var(--green)">${escHtml(data.pipeline)}</span>` : '';
+    div.innerHTML = `
+      <div class="routing-card">
+        ROUTING →
+        <span class="bot-tag">${escHtml((data.bot || 'unknown').toUpperCase())} BOT</span>
+        &nbsp;/&nbsp;<span class="action-tag">${escHtml(data.action || '')}</span>
+        &nbsp;<span class="conf-tag">${data.confidence ? Math.round(data.confidence * 100) + '%' : ''}</span>
+        <br>params: ${escHtml(params)}${pipeline}
+      </div>
+    `;
+    msgs.appendChild(div);
+    scrollToBottom();
+  }
+
+  // ── Typing indicator ────────────────────────────────────────────────────────
+  let typingEl = null;
+
+  function showTypingIndicator() {
+    if (typingEl) return;
+    const msgs = document.getElementById('messages');
+    typingEl = document.createElement('div');
+    typingEl.className = 'msg assistant';
+    typingEl.id = 'typing-indicator';
+    typingEl.innerHTML = `
+      <div class="msg-label" id="typing-label">Orchestrator thinking…</div>
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    `;
+    msgs.appendChild(typingEl);
+    scrollToBottom();
+  }
+
+  function updateTypingIndicator(text) {
+    const label = document.getElementById('typing-label');
+    if (label) label.textContent = text;
+    scrollToBottom();
+  }
+
+  function removeTypingIndicator() {
+    if (typingEl) { typingEl.remove(); typingEl = null; }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Activity log
+  // ---------------------------------------------------------------------------
+  function addActivity(bot, action, detail, status = 'success') {
+    const log = document.getElementById('activity-log');
+
+    // Remove empty state
+    const empty = log.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    const truncated = (detail || '').substring(0, 80) + ((detail || '').length > 80 ? '…' : '');
+
+    item.innerHTML = `
+      <div class="activity-meta">
+        <span class="activity-bot-tag">${escHtml(bot || 'OS')}</span>
+        <span class="activity-time">${formatTime(new Date())}</span>
+      </div>
+      <div class="activity-action">
+        <span class="activity-status ${status}"></span>
+        ${escHtml(action || 'request')}
+      </div>
+      <div class="activity-detail">${escHtml(truncated)}</div>
+    `;
+
+    log.insertBefore(item, log.firstChild);
+
+    // Keep last 50 items
+    const items = log.querySelectorAll('.activity-item');
+    if (items.length > 50) items[items.length - 1].remove();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bot status
+  // ---------------------------------------------------------------------------
+  async function refreshBotStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/status`);
+      if (!res.ok) throw new Error('status endpoint error');
+      const data = await res.json();
+
+      data.bots.forEach(bot => {
+        const dot    = document.getElementById(`dot-${bot.id}`);
+        const label  = document.getElementById(`status-${bot.id}`);
+        if (!dot || !label) return;
+
+        dot.className = 'bot-dot ' + (
+          bot.status === 'online' ? 'online' :
+          bot.status === 'local'  ? 'local'  :
+          bot.status === 'offline' ? 'offline' : ''
+        );
+        label.textContent = bot.status;
+      });
+
+      const online = data.bots_online;
+      const offline = data.bots_offline;
+      const statusEl = document.getElementById('system-status-text');
+      const dotEl    = document.getElementById('system-dot');
+
+      if (offline > 0) {
+        statusEl.textContent = `${offline} Bot${offline > 1 ? 's' : ''} Offline`;
+        dotEl.style.background = 'var(--amber)';
+        dotEl.style.animation = 'none';
+      } else {
+        statusEl.textContent = 'All Systems Online';
+        dotEl.style.background = 'var(--green)';
+        dotEl.style.animation = '';
+      }
+    } catch (e) {
+      // API unreachable — show degraded state
+      document.getElementById('system-status-text').textContent = 'API Unreachable';
+      document.getElementById('system-dot').style.background = 'var(--red)';
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bot selection (sidebar)
+  // ---------------------------------------------------------------------------
+  function selectBot(botId) {
+    selectedBot = botId;
+    document.querySelectorAll('.bot-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.bot === botId);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Session management
+  // ---------------------------------------------------------------------------
+  function clearSession() {
+    if (!confirm('Clear this session and all conversation history?')) return;
+    fetch(`${API_BASE}/session/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+    sessionStorage.removeItem('camelot_session_id');
+    sessionId = generateSessionId();
+    sessionStorage.setItem('camelot_session_id', sessionId);
+    initSession();
+
+    // Clear messages (keep welcome)
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = `
+      <div class="msg assistant" style="max-width:100%">
+        <div class="msg-label">Camelot OS</div>
+        <div class="msg-bubble">Session cleared. Ready for new commands.</div>
+      </div>
+    `;
+
+    toast('Session cleared', 'success');
+  }
+
+  // ---------------------------------------------------------------------------
+  // System status
+  // ---------------------------------------------------------------------------
+  function updateSystemStatus(status) {
+    const dotEl    = document.getElementById('system-dot');
+    const textEl   = document.getElementById('system-status-text');
+    if (status === 'offline') {
+      dotEl.style.background = 'var(--red)';
+      textEl.textContent = 'Reconnecting…';
+    } else {
+      dotEl.style.background = 'var(--green)';
+      dotEl.style.animation = '';
+      textEl.textContent = 'All Systems Online';
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utilities
+  // ---------------------------------------------------------------------------
+  function setLoading(state) {
+    isLoading = state;
+    document.getElementById('send-btn').disabled = state;
+    document.getElementById('chat-input').disabled = state;
+  }
+
+  function scrollToBottom() {
+    const msgs = document.getElementById('messages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function formatTime(d) {
+    return d.toLocaleTimeString('en-US', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/New_York', hour12: false
+    });
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatContent(content) {
+    if (!content) return '';
+    // Preserve JSON blocks
+    if (content.startsWith('{') || content.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(content);
+        return `<pre style="font-family:var(--mono);font-size:11px;white-space:pre-wrap;overflow-x:auto;">${escHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+      } catch (e) {}
+    }
+    // Basic markdown-ish: bold **text**, code `text`
+    return escHtml(content)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;">$1</code>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function toast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; }, 2700);
+    setTimeout(() => el.remove(), 3000);
+  }
+</script>
+</body>
+</html>

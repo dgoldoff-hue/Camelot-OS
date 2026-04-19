@@ -1,0 +1,72 @@
+# compliance_bot/config.yaml
+# Camelot Property Management Services Corp — Compliance Bot Configuration
+
+bot:
+  name: "Compliance Bot"
+  version: "1.0.0"
+  environment: "production"
+
+camelot:
+  company_name: "Camelot Property Management Services Corp"
+  geographies:
+    - "New York City"
+    - "Westchester County, NY"
+    - "Connecticut"
+    - "New Jersey"
+    - "Florida"
+
+alerts:
+  default_recipients:
+    - "dgoldoff@camelot.nyc"
+    - "charkien@camelot.nyc"
+  send_only_if_issues: false
+  subject_prefix: "[Camelot Compliance]"
+
+scan:
+  schedule:
+    full_scan: "0 7 * * *"        # Daily at 7am
+    critical_only: "0 */4 * * *"  # Every 4 hours
+    weekly_digest: "0 8 * * 1"    # Monday 8am
+  modules:
+    hpd: true
+    dob: true
+    ll97: true
+    rent_stabilization: true
+  deadline_warning_days: 30
+  deadline_critical_days: 7
+
+hpd:
+  api_url: "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
+  heat_season_start_month: 10
+  heat_season_end_month: 5
+
+dob:
+  violations_url: "https://data.cityofnewyork.us/resource/3h2n-5cm9.json"
+  permits_url: "https://data.cityofnewyork.us/resource/ipu4-2q9a.json"
+  ecb_url: "https://data.cityofnewyork.us/resource/6bgk-3dad.json"
+  permit_expiry_warning_days: 30
+
+ll97:
+  penalty_per_ton: 268.00
+  phase_1_years: [2024, 2029]
+  phase_2_years: [2030, 2034]
+  benchmarking_url: "https://data.cityofnewyork.us/resource/utjn-ijm2.json"
+
+rent_stabilization:
+  hpd_registration_url: "https://data.cityofnewyork.us/resource/tesw-yqqr.json"
+  hcr_url: "https://data.cityofnewyork.us/resource/qb38-trtu.json"
+  presumption_year: 1974
+  minimum_units: 6
+
+smtp:
+  host: "smtp.gmail.com"
+  port: 587
+  use_tls: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  file: "logs/compliance_bot.log"
+
+portfolio:
+  file: "portfolio.json"

@@ -1,0 +1,330 @@
+# =============================================================================
+# Camelot OS — Master Configuration
+# config.yaml
+#
+# All bot endpoints, service settings, pipeline definitions, and feature flags.
+# Sensitive values (API keys, passwords) are read from environment variables.
+# Reference them as ${ENV_VAR_NAME} — resolved at runtime by the app.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Orchestrator Core
+# ---------------------------------------------------------------------------
+orchestrator:
+  name: "Camelot OS"
+  version: "1.0.0"
+  environment: "${ENV:-production}"          # development | staging | production
+  host: "${HOST:-0.0.0.0}"
+  port: ${PORT:-8000}
+  log_level: "${LOG_LEVEL:-INFO}"
+  session_ttl_hours: 24                      # Auto-expire sessions after N hours
+  max_history_messages: 50                   # Max messages stored per session
+  default_history_fetch: 10                  # Default last_n for history retrieval
+  health_cache_ttl_seconds: 30               # How long to cache bot health checks
+  cors_origins:                              # Allowed CORS origins
+    - "*"
+
+# ---------------------------------------------------------------------------
+# Supabase (Persistent Memory + Data Store)
+# ---------------------------------------------------------------------------
+supabase:
+  url: "${SUPABASE_URL}"
+  service_key: "${SUPABASE_SERVICE_KEY}"
+  anon_key: "${SUPABASE_ANON_KEY}"
+  tables:
+    sessions: "orchestrator_sessions"
+    session_meta: "orchestrator_session_meta"
+    leads: "scout_leads"
+    tickets: "concierge_tickets"
+    violations: "compliance_violations"
+    documents: "index_documents"
+    deals: "deal_pipeline"
+
+# ---------------------------------------------------------------------------
+# OpenAI
+# ---------------------------------------------------------------------------
+openai:
+  api_key: "${OPENAI_API_KEY}"
+  default_model: "gpt-4o"
+  fallback_model: "gpt-4o-mini"
+  max_tokens: 4096
+  temperature: 0.2
+  timeout_seconds: 60
+
+# ---------------------------------------------------------------------------
+# HubSpot CRM
+# ---------------------------------------------------------------------------
+hubspot:
+  api_key: "${HUBSPOT_API_KEY}"
+  portal_id: "${HUBSPOT_PORTAL_ID}"
+  pipelines:
+    acquisitions: "${HUBSPOT_ACQUISITION_PIPELINE_ID}"
+    properties: "${HUBSPOT_PROPERTY_PIPELINE_ID}"
+  deal_stages:
+    prospect: "appointmentscheduled"
+    contacted: "qualifiedtobuy"
+    negotiating: "presentationscheduled"
+    loi_sent: "decisionmakerboughtin"
+    under_contract: "contractsent"
+    closed: "closedwon"
+    lost: "closedlost"
+
+# ---------------------------------------------------------------------------
+# Google APIs
+# ---------------------------------------------------------------------------
+google:
+  service_account_json: "${GOOGLE_SERVICE_ACCOUNT_JSON}"
+  drive_root_folder_id: "${GOOGLE_DRIVE_ROOT_FOLDER_ID}"
+  maps_api_key: "${GOOGLE_MAPS_API_KEY}"
+  search_api_key: "${GOOGLE_SEARCH_API_KEY}"
+  search_cx: "${GOOGLE_SEARCH_CX}"
+
+# ---------------------------------------------------------------------------
+# Email & SMS (Notifications)
+# ---------------------------------------------------------------------------
+sendgrid:
+  api_key: "${SENDGRID_API_KEY}"
+  from_email: "ops@camelotpms.com"
+  from_name: "Camelot OS"
+  templates:
+    weekly_kpi: "${SENDGRID_TEMPLATE_WEEKLY_KPI}"
+    maintenance_alert: "${SENDGRID_TEMPLATE_MAINTENANCE}"
+    violation_alert: "${SENDGRID_TEMPLATE_VIOLATION}"
+    outreach_email: "${SENDGRID_TEMPLATE_OUTREACH}"
+  report_recipients:
+    - "${REPORT_RECIPIENT_1}"
+    - "${REPORT_RECIPIENT_2}"
+
+twilio:
+  account_sid: "${TWILIO_ACCOUNT_SID}"
+  auth_token: "${TWILIO_AUTH_TOKEN}"
+  from_number: "${TWILIO_FROM_NUMBER}"
+  emergency_number: "${TWILIO_EMERGENCY_NUMBER}"
+
+# ---------------------------------------------------------------------------
+# Property Management Software
+# ---------------------------------------------------------------------------
+appfolio:
+  api_key: "${APPFOLIO_API_KEY}"
+  client_id: "${APPFOLIO_CLIENT_ID}"
+  base_url: "https://api.appfolio.com/api/v2"
+  default_property_manager_id: "${APPFOLIO_PM_ID}"
+
+buildium:
+  api_key: "${BUILDIUM_API_KEY}"
+  base_url: "https://api.buildium.com/v1"
+
+# ---------------------------------------------------------------------------
+# NYC Open Data APIs
+# ---------------------------------------------------------------------------
+nyc_open_data:
+  app_token: "${NYC_OPEN_DATA_APP_TOKEN}"
+  endpoints:
+    hpd_violations: "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
+    hpd_registrations: "https://data.cityofnewyork.us/resource/tesw-yqqr.json"
+    dob_violations: "https://data.cityofnewyork.us/resource/3h2n-5cm9.json"
+    dob_permits: "https://data.cityofnewyork.us/resource/ipu4-2q9a.json"
+    ecb_violations: "https://data.cityofnewyork.us/resource/6bgk-3dad.json"
+    pluto: "https://data.cityofnewyork.us/resource/64uk-42ks.json"
+    acris_real: "https://data.cityofnewyork.us/resource/8h5j-fqxa.json"
+    acris_parties: "https://data.cityofnewyork.us/resource/636b-3b5g.json"
+    ll97_benchmarking: "https://data.cityofnewyork.us/resource/wcm8-aq5w.json"
+  rate_limit_per_second: 10
+
+# ---------------------------------------------------------------------------
+# CoStar (Market Intelligence)
+# ---------------------------------------------------------------------------
+costar:
+  api_key: "${COSTAR_API_KEY}"
+  base_url: "https://api.costar.com/v1"
+  market_ids:
+    nyc: "NYC01"
+    westchester: "WES01"
+    nj_north: "NJN01"
+    ct_fairfield: "CTF01"
+
+# ---------------------------------------------------------------------------
+# Bot Registry & Service Endpoints
+# ---------------------------------------------------------------------------
+bots:
+  scout:
+    enabled: true
+    entry_point: "scout_bot/main.py"
+    api_endpoint: null                        # Local subprocess
+    timeout_seconds: 60
+    max_results_per_search: 50
+    default_min_units: 25
+    target_regions:
+      - "NYC"
+      - "Westchester, NY"
+      - "NJ"
+      - "CT"
+      - "FL"
+
+  broker:
+    enabled: true
+    entry_point: "broker_bot/main.py"
+    api_endpoint: null
+    timeout_seconds: 45
+    loi_template_path: "templates/loi_template.docx"
+    psa_template_path: "templates/psa_template.docx"
+    default_earnest_money_pct: 0.02           # 2% of purchase price
+    default_inspection_days: 30
+    default_due_diligence_days: 45
+
+  compliance:
+    enabled: true
+    entry_point: "compliance_bot/main.py"
+    api_endpoint: "http://compliance_bot:8003"
+    timeout_seconds: 90
+    violation_severity_thresholds:
+      class_c_alert: 1                        # Alert if any Class C (immediately hazardous)
+      class_b_alert: 5                        # Alert if 5+ Class B
+      class_a_alert: 15                       # Alert if 15+ Class A
+    ll97_thresholds:
+      tier_1_tons_co2e_per_sqft: 0.00675      # 2024–2029 standard
+      tier_2_tons_co2e_per_sqft: 0.00407      # 2030–2034 standard
+
+  concierge:
+    enabled: true
+    entry_point: "concierge_bot/main.py"
+    api_endpoint: "http://concierge_bot:8001"
+    timeout_seconds: 30
+    priority_levels:
+      - "emergency"                           # Life/safety — respond within 1 hour
+      - "urgent"                              # Habitability — respond within 24 hours
+      - "standard"                            # Normal — respond within 72 hours
+      - "low"                                 # Cosmetic — respond within 2 weeks
+    emergency_keywords:
+      - "fire"
+      - "flood"
+      - "gas leak"
+      - "burst pipe"
+      - "no heat"
+      - "no hot water"
+      - "elevator stuck"
+
+  index:
+    enabled: true
+    entry_point: "index_bot/main.py"
+    api_endpoint: "http://index_bot:8002"
+    timeout_seconds: 120
+    supported_mimetypes:
+      - "application/pdf"
+      - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      - "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      - "text/plain"
+      - "image/jpeg"
+      - "image/png"
+    folder_structure:
+      - "Properties/{address}/Leases"
+      - "Properties/{address}/Compliance"
+      - "Properties/{address}/Maintenance"
+      - "Acquisitions/{company}/Due Diligence"
+      - "Acquisitions/{company}/Financials"
+      - "Acquisitions/{company}/Legal"
+      - "Reports/Weekly KPIs"
+      - "Reports/Monthly Financials"
+      - "Vendors"
+
+  report:
+    enabled: true
+    entry_point: "report_bot/main.py"
+    api_endpoint: null
+    timeout_seconds: 60
+    kpi_schedule:
+      weekly: "0 8 * * 1"                    # Monday 8 AM UTC
+      monthly: "0 9 1 * *"                   # 1st of month, 9 AM UTC
+    kpis:
+      - "portfolio_occupancy_rate"
+      - "collections_rate"
+      - "total_units_under_management"
+      - "active_violations"
+      - "open_maintenance_tickets"
+      - "acquisition_pipeline_deals"
+      - "acquisition_pipeline_value"
+      - "monthly_noi"
+      - "monthly_revenue"
+
+  deal:
+    enabled: true
+    entry_point: "deal_bot/main.py"
+    api_endpoint: null
+    timeout_seconds: 90
+    outreach_cadence_days:
+      - 0                                     # Day 0: initial email
+      - 3                                     # Day 3: follow-up
+      - 7                                     # Day 7: phone call prompt
+      - 14                                    # Day 14: final follow-up
+    target_criteria:
+      min_units: 50
+      max_units: 5000
+      min_years_operating: 5
+      target_owner_age: 55                    # Operators likely to exit
+      violation_score_max: 70                 # Lower score = more violations = potential distress
+    icp:                                      # Ideal Customer Profile
+      description: "Family-owned PM company, 50-500 units, NYC/Tri-state, owner 55+, considering exit"
+      signals:
+        - "Owner nearing retirement age"
+        - "Portfolio with deferred maintenance"
+        - "No apparent succession plan"
+        - "Recent increase in HPD violations"
+        - "Owns fewer than 5 buildings"
+
+# ---------------------------------------------------------------------------
+# Named Pipelines
+# ---------------------------------------------------------------------------
+pipelines:
+  lead_to_crm:
+    description: "Find leads, enrich, push to HubSpot"
+    steps: ["scout.search_leads", "scout.enrich_lead", "scout.push_to_hubspot"]
+    estimated_seconds: 120
+
+  property_audit:
+    description: "Full compliance audit with scorecard"
+    steps: ["compliance.check_hpd", "compliance.check_dob", "compliance.check_ll97", "report.property_scorecard"]
+    estimated_seconds: 90
+
+  deal_outreach:
+    description: "Research target, battlecard, draft email, log to HubSpot"
+    steps: ["deal.research_target", "deal.build_battlecard", "deal.draft_email", "deal.log_outreach"]
+    estimated_seconds: 150
+
+  new_acquisition_dd:
+    description: "Full due diligence package"
+    steps: ["scout.enrich_lead", "compliance.full_audit", "broker.build_proforma", "report.deal_memo"]
+    estimated_seconds: 240
+
+  weekly_ops_rhythm:
+    description: "Weekly KPI + scout + compliance sweep"
+    steps: ["report.send_weekly_kpi", "scout.search_leads", "compliance.track_remediation"]
+    estimated_seconds: 180
+
+  lease_audit:
+    description: "Extract lease data, flag expiring, occupancy report"
+    steps: ["index.extract_lease_data", "index.flag_expiring", "report.occupancy_dashboard"]
+    estimated_seconds: 90
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
+  datefmt: "%Y-%m-%d %H:%M:%S"
+  file: "${LOG_FILE:-logs/camelot_os.log}"
+  max_bytes: 10485760                         # 10 MB
+  backup_count: 5
+  structured: false                           # Set true for JSON log output
+
+# ---------------------------------------------------------------------------
+# Feature Flags
+# ---------------------------------------------------------------------------
+features:
+  enable_websocket: true
+  enable_memory_persistence: true
+  enable_bot_health_cache: true
+  enable_entity_extraction: true
+  enable_pipeline_execution: true
+  dry_run_mode: false                         # If true, routes but never executes bots
+  demo_mode: false                            # Returns mock data for all bot calls

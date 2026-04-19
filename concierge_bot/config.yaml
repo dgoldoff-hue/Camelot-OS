@@ -1,0 +1,65 @@
+# concierge_bot/config.yaml
+# Camelot Property Management Services Corp — Concierge Bot Configuration
+
+bot:
+  name: "Concierge Bot"
+  version: "1.0.0"
+  environment: "production"
+
+camelot:
+  company_name: "Camelot Property Management Services Corp"
+  concierge_email: "concierge@camelot.nyc"
+  management_email: "mgr@camelot.nyc"
+  leasing_email: "leasing@camelot.nyc"
+  ar_email: "ar@camelot.nyc"
+  emergency_phone: "(212) 555-0199"
+  oncall_phone: "(212) 555-0199"
+  resident_portal: "https://residents.camelot.nyc"
+
+email:
+  imap_host: "imap.gmail.com"
+  imap_port: 993
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  mailbox: "INBOX"
+  poll_interval_seconds: 60
+  max_messages_per_poll: 20
+
+sms:
+  webhook_path: "/sms/inbound"
+
+escalation:
+  emergency_recipients:
+    - "mgr@camelot.nyc"
+  urgent_recipients:
+    - "mgr@camelot.nyc"
+
+heat_season:
+  start_month: 10   # October
+  end_month: 4      # April (inclusive)
+
+urgency_response_targets:
+  emergency: "30 minutes"
+  urgent: "2 hours"
+  routine: "24 hours"
+
+ticket:
+  format: "CAM-{year}-{sequence:04d}"
+  statuses:
+    - "Open"
+    - "Assigned"
+    - "In Progress"
+    - "Resolved"
+    - "Closed"
+
+supabase:
+  table: "tickets"
+
+server:
+  host: "0.0.0.0"
+  port: 8001
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  file: "logs/concierge_bot.log"

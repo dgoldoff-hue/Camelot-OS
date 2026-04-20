@@ -1,0 +1,30 @@
+{
+  "name": "camelot-scout-bot-hubspot",
+  "version": "1.0.0",
+  "description": "HubSpot CRM integration for Camelot OS Scout Bot",
+  "main": "integrations/hubspot_client.js",
+  "scripts": {
+    "start": "node integrations/hubspot_client.js",
+    "test": "node --test tests/hubspot_client.test.js",
+    "lint": "eslint integrations/"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@hubspot/api-client": "^11.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "keywords": [
+    "hubspot",
+    "crm",
+    "camelot",
+    "property-management",
+    "scout-bot"
+  ],
+  "author": "Camelot Property Management Services Corp.",
+  "license": "UNLICENSED",
+  "private": true
+}

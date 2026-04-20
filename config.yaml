@@ -1,0 +1,106 @@
+# =============================================================================
+# Scout Bot — Central Configuration
+# Camelot Property Management Services Corp.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Target regions for business-listing collectors (BizBuySell, BizQuest)
+# Supported: NY, FL, CT, NJ
+# ---------------------------------------------------------------------------
+regions:
+  - NY
+  - FL
+  - CT
+  - NJ
+
+# ---------------------------------------------------------------------------
+# LoopNet markets (separate from regions — more granular)
+# Supported: NYC, Westchester, NJ, CT, FL
+# ---------------------------------------------------------------------------
+loopnet_markets:
+  - NYC
+  - Westchester
+  - NJ
+  - CT
+  - FL
+
+# ---------------------------------------------------------------------------
+# Lead quality filtering
+# ---------------------------------------------------------------------------
+
+# Minimum score (0–100) a lead must achieve to pass the filter
+min_lead_score: 40
+
+# Maximum number of leads to enrich per run (enrichment has API costs)
+max_enrichments_per_run: 20
+
+# ---------------------------------------------------------------------------
+# HPD collector settings
+# ---------------------------------------------------------------------------
+hpd:
+  # Buildings with this many or more open violations are flagged
+  violation_threshold: 5
+  # Look back this many days for recent registration changes
+  recent_days: 90
+
+# ---------------------------------------------------------------------------
+# Job signal collector settings
+# ---------------------------------------------------------------------------
+job_signals:
+  max_pages_per_query: 3
+  lookback_days: 14
+
+# ---------------------------------------------------------------------------
+# HubSpot CRM
+# ---------------------------------------------------------------------------
+hubspot:
+  pipeline: "Camelot Prospects"
+  default_stage: "appointmentscheduled"
+  # Custom Scout properties must be created in HubSpot before use:
+  # Contact:  scout_source
+  # Company:  scout_source_site, scout_category, scout_score
+  # Deal:     scout_source_site, scout_region, scout_lead_type, scout_score,
+  #           scout_source_url, scout_run_date
+
+# ---------------------------------------------------------------------------
+# Email report settings
+# ---------------------------------------------------------------------------
+report_recipients:
+  - dgoldoff@camelot.nyc
+  - slodge@camelot.nyc
+  - luigi@camelot.nyc
+  - charkien@camelot.nyc
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+# Logging level: DEBUG | INFO | WARNING | ERROR | CRITICAL
+log_level: INFO
+
+# Log files written to: logs/scout_YYYY-MM-DD.log
+
+# ---------------------------------------------------------------------------
+# Cron schedule (for reference — set this in your cron / Render cron job)
+# ---------------------------------------------------------------------------
+
+# Run every day at 7:00 AM Eastern
+# cron: "0 7 * * *"
+#
+# To install in system cron:
+#   crontab -e
+#   0 7 * * * cd /app && python main.py >> /app/logs/cron.log 2>&1
+
+cron: "0 7 * * *"
+
+# ---------------------------------------------------------------------------
+# Supabase (optional — for persistent lead storage)
+# ---------------------------------------------------------------------------
+supabase:
+  table_name: scout_leads
+  # URL and key are loaded from SUPABASE_URL / SUPABASE_SERVICE_KEY env vars
+
+# ---------------------------------------------------------------------------
+# Report output directory
+# ---------------------------------------------------------------------------
+reports_output_dir: reports/output
